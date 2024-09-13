@@ -73,7 +73,7 @@
           cubes[x][y] = [];
           for (let z = 0; z < zSize; z++) {
             const geometry = new THREE.BoxGeometry(cellSize, cellSize, cellSize);
-            const material = new THREE.MeshBasicMaterial({ color: 0x888888, visible: true, opacity: 0.3, transparent: true }); // Dead cells in light gray
+            const material = new THREE.MeshBasicMaterial({ visible: false }); // Initially invisible for all cells
             const cube = new THREE.Mesh(geometry, material);
             cube.position.set(x * (cellSize + 0.1), y * (cellSize + 0.1), z * (cellSize + 0.1)); // Position cubes
             scene.add(cube);
@@ -100,8 +100,7 @@
               cubes[x][y][z].material.color.setHex(getRandomNeonColor());
               cubes[x][y][z].material.opacity = 1; // Fully visible when alive
             } else {
-              cubes[x][y][z].material.color.setHex(0x888888); // Dead cells are light gray
-              cubes[x][y][z].material.opacity = 0.3; // Semi-transparent when dead
+              cubes[x][y][z].material.visible = false; // Invisible when dead
             }
           }
         }
@@ -200,9 +199,11 @@
         // Remove highlight from previously hovered cell
         if (hoveredCell && hoveredCell !== intersectedObject) {
           hoveredCell.material.opacity = 0.3; // Reset previous cell opacity
+          hoveredCell.material.visible = false; // Hide the cell if it's dead
         }
 
         hoveredCell = intersectedObject;
+        hoveredCell.material.visible = true; // Show the hovered cell
         hoveredCell.material.opacity = 0.6; // Highlight hovered cell with brighter opacity
       }
     }
