@@ -3,230 +3,112 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3D Conway's Game of Life</title>
+  <title>3D Conway's Game of Life with Three.js</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      text-align: center;
       margin: 0;
-      padding: 0;
-      background-color: black; /* Keep the background black */
-      color: white; /* Text color */
+      overflow: hidden;
     }
     canvas {
-      border: 1px solid black;
       display: block;
-      margin: 20px auto;
-      background-color: black; /* Black background for the canvas */
-    }
-    button {
-      margin: 10px;
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-      color: white;
-      background-color: #444;
-      border: 1px solid #888;
     }
   </style>
 </head>
 <body>
-  <h1>3D Conway's Game of Life</h1>
-  <canvas id="gameCanvas" width="500" height="500"></canvas>
-  <div>
-    <button id="startBtn">Start</button>
-    <button id="pauseBtn">Pause</button>
-    <button id="resetBtn">Reset</button>
-    <button id="randomBtn">Random</button>
-    <label for="layerSlider">Z Layer: </label>
-    <input type="range" id="layerSlider" min="0" max="9" value="0">
-  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/controls/OrbitControls.js"></script>
 
   <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const cellSize = 10;
-    const rows = canvas.height / cellSize;
-    const cols = canvas.width / cellSize;
-    const layers = 10; // Number of Z layers
-    let currentLayer = 0; // Initial layer to view (Z = 0)
-    let grid = create3DGrid(rows, cols, layers);
-    let colors = create3DColorGrid(rows, cols, layers);
-    let simulationRunning = false;
-    let simulationInterval;
-    let isMouseDown = false;
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
 
-    // Create a 3D grid with all cells dead
-    function create3DGrid(rows, cols, layers) {
-      return Array.from({ length: layers }, () => 
-        Array.from({ length: rows }, () => Array(cols).fill(0))
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    camera.position.z = 50;
+    controls.update();
+
+    const cellSize = 2; // Cube size for each cell
+    const gridSize = 20; // X and Y size of the grid
+    const layers = 10; // Z size of the grid (depth)
+
+    // Create a 3D array (grid)
+    let grid = create3DGrid(gridSize, gridSize, layers);
+
+    // Create a 3D grid to track cube objects
+    let cubes = create3DCubeGrid(gridSize, gridSize, layers);
+
+    // Create a 3D grid (X, Y, Z) with all cells dead initially
+    function create3DGrid(xSize, ySize, zSize) {
+      return Array.from({ length: xSize }, () =>
+        Array.from({ length: ySize }, () =>
+          Array.from({ length: zSize }, () => 0)
+        )
       );
     }
 
-    // Create a 3D color grid
-    function create3DColorGrid(rows, cols, layers) {
-      return Array.from({ length: layers }, () => 
-        Array.from({ length: rows }, () => Array(cols).fill(null))
-      );
+    // Create a cube for each alive cell
+    function create3DCubeGrid(xSize, ySize, zSize) {
+      let cubes = [];
+      for (let x = 0; x < xSize; x++) {
+        cubes[x] = [];
+        for (let y = 0; y < ySize; y++) {
+          cubes[x][y] = [];
+          for (let z = 0; z < zSize; z++) {
+            const geometry = new THREE.BoxGeometry(cellSize, cellSize, cellSize);
+            const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, visible: false }); // Invisible cubes for dead cells
+            const cube = new THREE.Mesh(geometry, material);
+            cube.position.set(x * (cellSize + 0.1), y * (cellSize + 0.1), z * (cellSize + 0.1)); // Position cubes
+            scene.add(cube);
+            cubes[x][y][z] = cube;
+          }
+        }
+      }
+      return cubes;
     }
 
-    // Generate random neon color
+    // Generate a random color for neon effect
     function getRandomNeonColor() {
-      const neonColors = ['#39FF14', '#FF073A', '#FF61F6', '#0FF0FC', '#FFFF33', '#FFAA1D', '#B200ED', '#7FFF00'];
+      const neonColors = [0x39FF14, 0xFF073A, 0xFF61F6, 0x0FF0FC, 0xFFFF33, 0xFFAA1D, 0xB200ED, 0x7FFF00];
       return neonColors[Math.floor(Math.random() * neonColors.length)];
     }
 
-    // Toggle cell state when clicked or dragged (for the current layer)
-    function toggleCell(row, col) {
-      if (grid[currentLayer][row][col] === 0) {
-        grid[currentLayer][row][col] = 1;
-        colors[currentLayer][row][col] = getRandomNeonColor(); // Assign neon color
-      } else {
-        grid[currentLayer][row][col] = 0;
-        colors[currentLayer][row][col] = null;
-      }
-      drawLayer(currentLayer);
-    }
-
-    // Handle mouse events
-    canvas.addEventListener('mousedown', function(event) {
-      isMouseDown = true;
-      handleMouseAction(event);
-    });
-
-    canvas.addEventListener('mousemove', function(event) {
-      if (isMouseDown) {
-        handleMouseAction(event);
-      }
-    });
-
-    canvas.addEventListener('mouseup', function() {
-      isMouseDown = false;
-    });
-
-    function handleMouseAction(event) {
-      const rect = canvas.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-      const col = Math.floor(x / cellSize);
-      const row = Math.floor(y / cellSize);
-      toggleCell(row, col);
-    }
-
-    // Draw the current Z layer
-    function drawLayer(layer) {
-      for (let i = 0; i < rows; i++) {
-        for (let j = 0; j < cols; j++) {
-          if (grid[layer][i][j] === 1) {
-            ctx.fillStyle = colors[layer][i][j]; // Use neon color
-          } else {
-            ctx.fillStyle = 'black'; // Dead cells are black
-          }
-          ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
-          ctx.strokeStyle = '#444'; // Grid lines in dark gray
-          ctx.strokeRect(j * cellSize, i * cellSize, cellSize, cellSize);
-        }
-      }
-    }
-
-    // Count the number of alive neighbors in 3D space
-    function count3DNeighbors(grid, x, y, z) {
-      let sum = 0;
-      for (let i = -1; i <= 1; i++) {
-        for (let j = -1; j <= 1; j++) {
-          for (let k = -1; k <= 1; k++) {
-            if (i === 0 && j === 0 && k === 0) continue;
-            const newRow = (x + i + rows) % rows;
-            const newCol = (y + j + cols) % cols;
-            const newLayer = (z + k + layers) % layers;
-            sum += grid[newLayer][newRow][newCol];
-          }
-        }
-      }
-      return sum;
-    }
-
-    // Update the entire 3D grid according to the rules of the game
-    function update3DGrid() {
-      const newGrid = create3DGrid(rows, cols, layers);
-      const newColors = create3DColorGrid(rows, cols, layers);
-
-      for (let z = 0; z < layers; z++) {
-        for (let x = 0; x < rows; x++) {
-          for (let y = 0; y < cols; y++) {
-            const totalNeighbors = count3DNeighbors(grid, x, y, z);
-
-            if (grid[z][x][y] === 0) {
-              if (totalNeighbors === 3) {
-                newGrid[z][x][y] = 1; // Cell becomes alive
-                newColors[z][x][y] = getRandomNeonColor();
-              }
-            } else {
-              if (totalNeighbors < 2 || totalNeighbors > 3) {
-                newGrid[z][x][y] = 0; // Cell dies
-                newColors[z][x][y] = null;
-              } else {
-                newGrid[z][x][y] = 1; // Keep the cell alive
-                newColors[z][x][y] = colors[z][x][y];
-              }
+    // Randomly fill the grid with alive cells (and update the cubes)
+    function randomFillGrid() {
+      for (let x = 0; x < gridSize; x++) {
+        for (let y = 0; y < gridSize; y++) {
+          for (let z = 0; z < layers; z++) {
+            const isAlive = Math.random() > 0.8 ? 1 : 0;
+            grid[x][y][z] = isAlive;
+            cubes[x][y][z].material.visible = isAlive ? true : false;
+            if (isAlive) {
+              cubes[x][y][z].material.color.setHex(getRandomNeonColor());
             }
           }
         }
       }
-      grid = newGrid;
-      colors = newColors;
     }
 
-    // Start the simulation
-    document.getElementById('startBtn').addEventListener('click', function() {
-      if (!simulationRunning) {
-        simulationRunning = true;
-        simulationInterval = setInterval(() => {
-          update3DGrid();
-          drawLayer(currentLayer);
-        }, 100); // Adjust speed
-      }
-    });
+    // Animate the scene and render the 3D cubes
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
 
-    // Pause the simulation
-    document.getElementById('pauseBtn').addEventListener('click', function() {
-      simulationRunning = false;
-      clearInterval(simulationInterval);
-    });
+    // Initial random fill and animation start
+    randomFillGrid();
+    animate();
 
-    // Reset the grid
-    document.getElementById('resetBtn').addEventListener('click', function() {
-      simulationRunning = false;
-      clearInterval(simulationInterval);
-      grid = create3DGrid(rows, cols, layers);
-      colors = create3DColorGrid(rows, cols, layers);
-      drawLayer(currentLayer);
+    // Resize renderer on window resize
+    window.addEventListener('resize', function () {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      renderer.setSize(width, height);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
     });
-
-    // Randomly fill the current layer
-    document.getElementById('randomBtn').addEventListener('click', function() {
-      for (let i = 0; i < rows; i++) {
-        for (let j = 0; j < cols; j++) {
-          if (Math.random() > 0.5) {
-            grid[currentLayer][i][j] = 1;
-            colors[currentLayer][i][j] = getRandomNeonColor();
-          } else {
-            grid[currentLayer][i][j] = 0;
-            colors[currentLayer][i][j] = null;
-          }
-        }
-      }
-      drawLayer(currentLayer);
-    });
-
-    // Update the current layer based on slider input
-    document.getElementById('layerSlider').addEventListener('input', function(event) {
-      currentLayer = parseInt(event.target.value);
-      drawLayer(currentLayer);
-    });
-
-    // Initialize the first layer on page load
-    drawLayer(currentLayer);
   </script>
 </body>
 </html>
