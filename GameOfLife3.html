@@ -9,12 +9,27 @@
       margin: 0;
       overflow: hidden;
     }
-    canvas {
-      display: block;
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1;
+    }
+    button {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
+  <div id="controls">
+    <button id="startBtn">Start</button>
+    <button id="pauseBtn">Pause</button>
+    <button id="randomBtn">Random Fill</button>
+  </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/controls/OrbitControls.js"></script>
 
@@ -33,13 +48,12 @@
     const gridSize = 20; // X and Y size of the grid
     const layers = 10; // Z size of the grid (depth)
 
-    // Create a 3D array (grid)
-    let grid = create3DGrid(gridSize, gridSize, layers);
+    let grid = create3DGrid(gridSize, gridSize, layers); // Holds the state (alive or dead)
+    let cubes = create3DCubeGrid(gridSize, gridSize, layers); // Holds the 3D cubes
+    let isRunning = false; // Controls whether the simulation is running
+    let simulationInterval;
 
     // Create a 3D grid to track cube objects
-    let cubes = create3DCubeGrid(gridSize, gridSize, layers);
-
-    // Create a 3D grid (X, Y, Z) with all cells dead initially
     function create3DGrid(xSize, ySize, zSize) {
       return Array.from({ length: xSize }, () =>
         Array.from({ length: ySize }, () =>
@@ -74,34 +88,120 @@
       return neonColors[Math.floor(Math.random() * neonColors.length)];
     }
 
-    // Randomly fill the grid with alive cells (and update the cubes)
-    function randomFillGrid() {
+    // Update the visibility and color of cubes based on the grid
+    function updateCubeVisibility() {
       for (let x = 0; x < gridSize; x++) {
         for (let y = 0; y < gridSize; y++) {
           for (let z = 0; z < layers; z++) {
-            const isAlive = Math.random() > 0.8 ? 1 : 0;
-            grid[x][y][z] = isAlive;
-            cubes[x][y][z].material.visible = isAlive ? true : false;
-            if (isAlive) {
+            if (grid[x][y][z] === 1) {
+              cubes[x][y][z].material.visible = true;
               cubes[x][y][z].material.color.setHex(getRandomNeonColor());
+            } else {
+              cubes[x][y][z].material.visible = false;
             }
           }
         }
       }
     }
 
-    // Animate the scene and render the 3D cubes
-    function animate() {
-      requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
+    // Randomly fill the grid with alive cells
+    function randomFillGrid() {
+      for (let x = 0; x < gridSize; x++) {
+        for (let y = 0; y < gridSize; y++) {
+          for (let z = 0; z < layers; z++) {
+            grid[x][y][z] = Math.random() > 0.8 ? 1 : 0;
+          }
+        }
+      }
+      updateCubeVisibility();
     }
 
-    // Initial random fill and animation start
-    randomFillGrid();
-    animate();
+    // Game of Life rule application in 3D
+    function applyRules() {
+      let newGrid = create3DGrid(gridSize, gridSize, layers);
+      for (let x = 0; x < gridSize; x++) {
+        for (let y = 0; y < gridSize; y++) {
+          for (let z = 0; z < layers; z++) {
+            let neighbors = count3DNeighbors(x, y, z);
+            if (grid[x][y][z] === 1) {
+              newGrid[x][y][z] = (neighbors === 2 || neighbors === 3) ? 1 : 0; // Cell survives with 2 or 3 neighbors
+            } else {
+              newGrid[x][y][z] = (neighbors === 3) ? 1 : 0; // Cell is born with exactly 3 neighbors
+            }
+          }
+        }
+      }
+      grid = newGrid;
+      updateCubeVisibility();
+    }
 
-    // Resize renderer on window resize
+    // Count the number of alive neighbors in 3D space
+    function count3DNeighbors(x, y, z) {
+      let sum = 0;
+      for (let i = -1; i <= 1; i++) {
+        for (let j = -1; j <= 1; j++) {
+          for (let k = -1; k <= 1; k++) {
+            if (i === 0 && j === 0 && k === 0) continue; // Skip the current cell
+            const newX = (x + i + gridSize) % gridSize;
+            const newY = (y + j + gridSize) % gridSize;
+            const newZ = (z + k + layers) % layers;
+            sum += grid[newX][newY][newZ];
+          }
+        }
+      }
+      return sum;
+    }
+
+    // Start the simulation
+    function startSimulation() {
+      if (!isRunning) {
+        isRunning = true;
+        simulationInterval = setInterval(applyRules, 100); // Adjust the speed as needed
+      }
+    }
+
+    // Pause the simulation
+    function pauseSimulation() {
+      clearInterval(simulationInterval);
+      isRunning = false;
+    }
+
+    // Click event to toggle a cell between alive and dead
+    function onDocumentMouseDown(event) {
+      event.preventDefault();
+      const mouse = new THREE.Vector2();
+      const raycaster = new THREE.Raycaster();
+      
+      // Convert mouse position to normalized device coordinates (-1 to +1)
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+
+      const intersects = raycaster.intersectObjects(scene.children);
+      if (intersects.length > 0) {
+        const intersectedObject = intersects[0].object;
+        for (let x = 0; x < gridSize; x++) {
+          for (let y = 0; y < gridSize; y++) {
+            for (let z = 0; z < layers; z++) {
+              if (cubes[x][y][z] === intersectedObject) {
+                grid[x][y][z] = grid[x][y][z] === 1 ? 0 : 1; // Toggle state
+                updateCubeVisibility();
+                return;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Event listeners for buttons
+    document.getElementById('startBtn').addEventListener('click', startSimulation);
+    document.getElementById('pauseBtn').addEventListener('click', pauseSimulation);
+    document.getElementById('randomBtn').addEventListener('click', randomFillGrid);
+    window.addEventListener('mousedown', onDocumentMouseDown);
+
+    // Resize handler
     window.addEventListener('resize', function () {
       const width = window.innerWidth;
       const height = window.innerHeight;
@@ -109,6 +209,16 @@
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
     });
+
+    // Render loop
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    randomFillGrid(); // Initial random fill
+    animate(); // Start the render loop
   </script>
 </body>
 </html>
