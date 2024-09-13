@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta charset="UTF-8">
   <title>3D Conway's Game of Life with Three.js</title>
   <style>
@@ -63,7 +63,7 @@
       );
     }
 
-    // Create a cube for each alive cell
+    // Create a cube for each cell (alive or dead)
     function create3DCubeGrid(xSize, ySize, zSize) {
       let cubes = [];
       for (let x = 0; x < xSize; x++) {
@@ -72,7 +72,7 @@
           cubes[x][y] = [];
           for (let z = 0; z < zSize; z++) {
             const geometry = new THREE.BoxGeometry(cellSize, cellSize, cellSize);
-            const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, visible: false }); // Invisible cubes for dead cells
+            const material = new THREE.MeshBasicMaterial({ color: 0x888888, visible: true, opacity: 0.3, transparent: true }); // Dead cells in light gray
             const cube = new THREE.Mesh(geometry, material);
             cube.position.set(x * (cellSize + 0.1), y * (cellSize + 0.1), z * (cellSize + 0.1)); // Position cubes
             scene.add(cube);
@@ -83,7 +83,7 @@
       return cubes;
     }
 
-    // Generate a random color for neon effect
+    // Generate a random color for neon effect (for alive cells)
     function getRandomNeonColor() {
       const neonColors = [0x39FF14, 0xFF073A, 0xFF61F6, 0x0FF0FC, 0xFFFF33, 0xFFAA1D, 0xB200ED, 0x7FFF00];
       return neonColors[Math.floor(Math.random() * neonColors.length)];
@@ -97,8 +97,10 @@
             if (grid[x][y][z] === 1) {
               cubes[x][y][z].material.visible = true;
               cubes[x][y][z].material.color.setHex(getRandomNeonColor());
+              cubes[x][y][z].material.opacity = 1; // Fully visible when alive
             } else {
-              cubes[x][y][z].material.visible = false;
+              cubes[x][y][z].material.color.setHex(0x888888); // Dead cells are light gray
+              cubes[x][y][z].material.opacity = 0.3; // Semi-transparent when dead
             }
           }
         }
@@ -231,7 +233,7 @@
       renderer.render(scene, camera);
     }
 
-    randomFillGrid(); // Initial random fill
+    clearGrid(); // Initialize with an empty grid
     animate(); // Start the render loop
   </script>
 </body>
