@@ -1,122 +1,139 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game of Life with Random Colors</title>
-    <style>
-        canvas {
-            border: 1px solid black;
-            display: block;
-            margin: 0 auto;
-        }
-        body {
-            text-align: center;
-            font-family: Arial, sans-serif;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conway's Game of Life</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    canvas {
+      border: 1px solid black;
+      display: block;
+      margin: 0 auto;
+    }
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
-    <h1>Game of Life with Rainbow Colors</h1>
-    <canvas id="gameCanvas"></canvas>
+  <h1>Conway's Game of Life</h1>
+  <canvas id="gameCanvas" width="500" height="500"></canvas>
+  <div>
+    <button id="startBtn">Start</button>
+    <button id="pauseBtn">Pause</button>
+    <button id="resetBtn">Reset</button>
+  </div>
 
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        
-        const gridSize = 50;
-        const cellSize = 10;
-        canvas.width = gridSize * cellSize;
-        canvas.height = gridSize * cellSize;
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const cellSize = 10; // Size of each cell
+    const rows = canvas.height / cellSize;
+    const cols = canvas.width / cellSize;
+    let grid = createGrid(rows, cols);
+    let simulationRunning = false;
+    let simulationInterval;
 
-        // Initialize grid and color grid
-        let grid = createRandomGrid(gridSize);
-        let colorGrid = createColorGrid(gridSize);
+    // Initialize grid with all cells dead
+    function createGrid(rows, cols) {
+      return Array.from({ length: rows }, () => Array(cols).fill(0));
+    }
 
-        // Create a random color for each cell
-        function randomColor() {
-            const r = Math.floor(Math.random() * 256);
-            const g = Math.floor(Math.random() * 256);
-            const b = Math.floor(Math.random() * 256);
-            return `rgb(${r},${g},${b})`;
+    // Toggle cell state when clicked
+    canvas.addEventListener('click', function(event) {
+      const rect = canvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const col = Math.floor(x / cellSize);
+      const row = Math.floor(y / cellSize);
+      grid[row][col] = grid[row][col] ? 0 : 1; // Toggle between alive and dead
+      drawGrid();
+    });
+
+    // Draw the grid
+    function drawGrid() {
+      for (let i = 0; i < rows; i++) {
+        for (let j = 0; j < cols; j++) {
+          ctx.fillStyle = grid[i][j] ? 'black' : 'white';
+          ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
+          ctx.strokeRect(j * cellSize, i * cellSize, cellSize, cellSize); // Draw cell borders
         }
+      }
+    }
 
-        // Initialize grid with random live/dead cells
-        function createRandomGrid(size) {
-            let arr = new Array(size).fill(null).map(() => new Array(size).fill(0));
-            for (let i = 0; i < size; i++) {
-                for (let j = 0; j < size; j++) {
-                    arr[i][j] = Math.random() > 0.7 ? 1 : 0;  // 30% chance of alive
-                }
+    // Count the number of alive neighbors
+    function countNeighbors(grid, x, y) {
+      let sum = 0;
+      for (let i = -1; i <= 1; i++) {
+        for (let j = -1; j <= 1; j++) {
+          const row = (x + i + rows) % rows;
+          const col = (y + j + cols) % cols;
+          sum += grid[row][col];
+        }
+      }
+      sum -= grid[x][y]; // Subtract the current cell itself
+      return sum;
+    }
+
+    // Update the grid according to the rules of the game
+    function updateGrid() {
+      const newGrid = grid.map(arr => [...arr]); // Clone the grid
+
+      for (let i = 0; i < rows; i++) {
+        for (let j = 0; j < cols; j++) {
+          const totalNeighbors = countNeighbors(grid, i, j);
+
+          if (grid[i][j] === 0) {
+            if (totalNeighbors === 3) {
+              newGrid[i][j] = 1; // Cell becomes alive
             }
-            return arr;
-        }
-
-        // Initialize color grid
-        function createColorGrid(size) {
-            let colorGrid = new Array(size).fill(null).map(() => new Array(size).fill('black'));
-            return colorGrid;
-        }
-
-        // Draw the grid
-        function drawGrid(grid, colorGrid) {
-            for (let i = 0; i < gridSize; i++) {
-                for (let j = 0; j < gridSize; j++) {
-                    if (grid[i][j] === 1) {
-                        ctx.fillStyle = colorGrid[i][j];  // Use the cell's current color
-                    } else {
-                        ctx.fillStyle = 'black';  // Dead cells are black
-                    }
-                    ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
-                }
+          } else {
+            if (totalNeighbors < 2 || totalNeighbors > 3) {
+              newGrid[i][j] = 0; // Cell dies
             }
+          }
         }
+      }
 
-        // Update grid for each generation based on Conway's rules
-        function updateGrid() {
-            let newGrid = grid.map(arr => [...arr]);
-            for (let i = 0; i < gridSize; i++) {
-                for (let j = 0; j < gridSize; j++) {
-                    let liveNeighbors = countLiveNeighbors(grid, i, j);
-                    
-                    if (grid[i][j] === 1) {
-                        if (liveNeighbors < 2 || liveNeighbors > 3) {
-                            newGrid[i][j] = 0;  // Cell dies
-                        }
-                    } else {
-                        if (liveNeighbors === 3) {
-                            newGrid[i][j] = 1;  // Cell becomes alive
-                            colorGrid[i][j] = randomColor();  // Assign random color
-                        }
-                    }
-                }
-            }
-            grid = newGrid;
-        }
+      grid = newGrid;
+    }
 
-        // Count live neighbors
-        function countLiveNeighbors(grid, x, y) {
-            let liveNeighbors = 0;
-            for (let i = -1; i <= 1; i++) {
-                for (let j = -1; j <= 1; j++) {
-                    if (i === 0 && j === 0) continue;  // Skip the current cell
-                    const row = (x + i + gridSize) % gridSize;
-                    const col = (y + j + gridSize) % gridSize;
-                    liveNeighbors += grid[row][col];
-                }
-            }
-            return liveNeighbors;
-        }
+    // Start the simulation
+    document.getElementById('startBtn').addEventListener('click', function() {
+      if (!simulationRunning) {
+        simulationRunning = true;
+        simulationInterval = setInterval(() => {
+          updateGrid();
+          drawGrid();
+        }, 100); // Speed of the simulation in milliseconds
+      }
+    });
 
-        // Main game loop
-        function gameLoop() {
-            updateGrid();
-            drawGrid(grid, colorGrid);
-            requestAnimationFrame(gameLoop);  // Loop the game continuously
-        }
+    // Pause the simulation
+    document.getElementById('pauseBtn').addEventListener('click', function() {
+      simulationRunning = false;
+      clearInterval(simulationInterval);
+    });
 
-        // Start the game
-        gameLoop();
-    </script>
+    // Reset the grid
+    document.getElementById('resetBtn').addEventListener('click', function() {
+      simulationRunning = false;
+      clearInterval(simulationInterval);
+      grid = createGrid(rows, cols); // Reset the grid to all dead cells
+      drawGrid();
+    });
+
+    // Initialize the empty grid on page load
+    drawGrid();
+  </script>
 </body>
 </html>
