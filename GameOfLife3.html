@@ -1,116 +1,136 @@
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
-import { BloomPass } from 'three/examples/jsm/postprocessing/BloomPass';
-
-// Initialize scene, camera, and renderer
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
-
-const controls = new OrbitControls(camera, renderer.domElement);
-camera.position.set(50, 50, 50);
-controls.update();
-
-// Lighting
-const pointLight = new THREE.PointLight(0xffffff, 1);
-pointLight.position.set(50, 50, 50);
-scene.add(pointLight);
-
-// Bloom effect
-const composer = new EffectComposer(renderer);
-composer.addPass(new RenderPass(scene, camera));
-composer.addPass(new BloomPass(1.25));
-
-// Create 3D grid and cube geometry
-const size = 20;
-const cubes = [];
-const grid = Array(size).fill().map(() => Array(size).fill().map(() => Array(size).fill(0)));
-
-const geometry = new THREE.BoxGeometry(1, 1, 1);
-const materialAlive = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
-const materialDead = new THREE.MeshStandardMaterial({ color: 0x444444, opacity: 0.2, transparent: true });
-
-for (let x = 0; x < size; x++) {
-  cubes[x] = [];
-  for (let y = 0; y < size; y++) {
-    cubes[x][y] = [];
-    for (let z = 0; z < size; z++) {
-      const cube = new THREE.Mesh(geometry, materialDead);
-      cube.position.set(x, y, z);
-      scene.add(cube);
-      cubes[x][y][z] = cube;
-    }
-  }
-}
-
-// Initialize grid with a pattern
-function initGrid() {
-  grid[size / 2][size / 2][size / 2] = 1;
-  grid[size / 2 + 1][size / 2][size / 2] = 1;
-  grid[size / 2 - 1][size / 2][size / 2] = 1;
-  updateCubes();
-}
-
-// Update cube visibility based on the grid state
-function updateCubes() {
-  for (let x = 0; x < size; x++) {
-    for (let y = 0; y < size; y++) {
-      for (let z = 0; z < size; z++) {
-        cubes[x][y][z].material = grid[x][y][z] ? materialAlive : materialDead;
-      }
-    }
-  }
-}
-
-// Compute next grid state using Game of Life rules
-function computeNextGrid() {
-  const newGrid = Array(size).fill().map(() => Array(size).fill().map(() => Array(size).fill(0)));
-
-  for (let x = 0; x < size; x++) {
-    for (let y = 0; y < size; y++) {
-      for (let z = 0; z < size; z++) {
-        const neighbors = countNeighbors(x, y, z);
-        if (grid[x][y][z]) {
-          newGrid[x][y][z] = neighbors === 2 || neighbors === 3 ? 1 : 0;
-        } else {
-          newGrid[x][y][z] = neighbors === 3 ? 1 : 0;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Game of Life</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
         }
-      }
-    }
-  }
+    </style>
+</head>
+<body>
+    <!-- Script tags for Three.js and your code -->
+    <script type="module">
+        // Import Three.js and necessary controls/effects from a CDN
+        import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128/build/three.module.js';
+        import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.128/examples/jsm/controls/OrbitControls.js';
+        import { EffectComposer } from 'https://cdn.jsdelivr.net/npm/three@0.128/examples/jsm/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'https://cdn.jsdelivr.net/npm/three@0.128/examples/jsm/postprocessing/RenderPass.js';
+        import { BloomPass } from 'https://cdn.jsdelivr.net/npm/three@0.128/examples/jsm/postprocessing/BloomPass.js';
 
-  grid = newGrid;
-  updateCubes();
-}
+        // Initialize scene, camera, and renderer
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
 
-// Count neighbors of a cell
-function countNeighbors(x, y, z) {
-  let count = 0;
-  for (let dx = -1; dx <= 1; dx++) {
-    for (let dy = -1; dy <= 1; dy++) {
-      for (let dz = -1; dz <= 1; dz++) {
-        if (dx === 0 && dy === 0 && dz === 0) continue;
-        const nx = (x + dx + size) % size;
-        const ny = (y + dy + size) % size;
-        const nz = (z + dz + size) % size;
-        count += grid[nx][ny][nz];
-      }
-    }
-  }
-  return count;
-}
+        const controls = new OrbitControls(camera, renderer.domElement);
+        camera.position.set(50, 50, 50);
+        controls.update();
 
-// Animate and compute next grid state in a loop
-function animate() {
-  requestAnimationFrame(animate);
-  composer.render();
-  controls.update();
-}
+        // Lighting
+        const pointLight = new THREE.PointLight(0xffffff, 1);
+        pointLight.position.set(50, 50, 50);
+        scene.add(pointLight);
 
-initGrid();
-setInterval(computeNextGrid, 100); // Update the grid state every 100ms
-animate();
+        // Bloom effect
+        const composer = new EffectComposer(renderer);
+        composer.addPass(new RenderPass(scene, camera));
+        composer.addPass(new BloomPass(1.25));
+
+        // Create 3D grid and cube geometry
+        const size = 20;
+        const cubes = [];
+        let grid = Array(size).fill().map(() => Array(size).fill().map(() => Array(size).fill(0)));
+
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        const materialAlive = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+        const materialDead = new THREE.MeshStandardMaterial({ color: 0x444444, opacity: 0.2, transparent: true });
+
+        for (let x = 0; x < size; x++) {
+            cubes[x] = [];
+            for (let y = 0; y < size; y++) {
+                cubes[x][y] = [];
+                for (let z = 0; z < size; z++) {
+                    const cube = new THREE.Mesh(geometry, materialDead);
+                    cube.position.set(x, y, z);
+                    scene.add(cube);
+                    cubes[x][y][z] = cube;
+                }
+            }
+        }
+
+        // Initialize grid with a pattern
+        function initGrid() {
+            grid[Math.floor(size / 2)][Math.floor(size / 2)][Math.floor(size / 2)] = 1;
+            grid[Math.floor(size / 2) + 1][Math.floor(size / 2)][Math.floor(size / 2)] = 1;
+            grid[Math.floor(size / 2) - 1][Math.floor(size / 2)][Math.floor(size / 2)] = 1;
+            updateCubes();
+        }
+
+        // Update cube visibility based on the grid state
+        function updateCubes() {
+            for (let x = 0; x < size; x++) {
+                for (let y = 0; y < size; y++) {
+                    for (let z = 0; z < size; z++) {
+                        cubes[x][y][z].material = grid[x][y][z] ? materialAlive : materialDead;
+                    }
+                }
+            }
+        }
+
+        // Compute next grid state using Game of Life rules
+        function computeNextGrid() {
+            const newGrid = Array(size).fill().map(() => Array(size).fill().map(() => Array(size).fill(0)));
+
+            for (let x = 0; x < size; x++) {
+                for (let y = 0; y < size; y++) {
+                    for (let z = 0; z < size; z++) {
+                        const neighbors = countNeighbors(x, y, z);
+                        if (grid[x][y][z]) {
+                            newGrid[x][y][z] = neighbors === 2 || neighbors === 3 ? 1 : 0;
+                        } else {
+                            newGrid[x][y][z] = neighbors === 3 ? 1 : 0;
+                        }
+                    }
+                }
+            }
+
+            grid = newGrid;
+            updateCubes();
+        }
+
+        // Count neighbors of a cell
+        function countNeighbors(x, y, z) {
+            let count = 0;
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    for (let dz = -1; dz <= 1; dz++) {
+                        if (dx === 0 && dy === 0 && dz === 0) continue;
+                        const nx = (x + dx + size) % size;
+                        const ny = (y + dy + size) % size;
+                        const nz = (z + dz + size) % size;
+                        count += grid[nx][ny][nz];
+                    }
+                }
+            }
+            return count;
+        }
+
+        // Animate and compute next grid state in a loop
+        function animate() {
+            requestAnimationFrame(animate);
+            composer.render();
+            controls.update();
+        }
+
+        initGrid();
+        setInterval(computeNextGrid, 100); // Update the grid state every 100ms
+        animate();
+    </script>
+</body>
+</html>
