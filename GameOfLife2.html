@@ -31,6 +31,7 @@
     <button id="startBtn">Start</button>
     <button id="pauseBtn">Pause</button>
     <button id="resetBtn">Reset</button>
+    <button id="randomBtn">Random</button>
   </div>
 
   <script>
@@ -40,30 +41,77 @@
     const rows = canvas.height / cellSize;
     const cols = canvas.width / cellSize;
     let grid = createGrid(rows, cols);
+    let colors = createColorGrid(rows, cols); // Store colors for live cells
     let simulationRunning = false;
     let simulationInterval;
+    let isMouseDown = false;
 
     // Initialize grid with all cells dead
     function createGrid(rows, cols) {
       return Array.from({ length: rows }, () => Array(cols).fill(0));
     }
 
-    // Toggle cell state when clicked
-    canvas.addEventListener('click', function(event) {
+    // Initialize color grid
+    function createColorGrid(rows, cols) {
+      return Array.from({ length: rows }, () => Array(cols).fill(null));
+    }
+
+    // Generate random rainbow color
+    function getRandomColor() {
+      const letters = '0123456789ABCDEF';
+      let color = '#';
+      for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      return color;
+    }
+
+    // Toggle cell state when clicked or dragged
+    function toggleCell(row, col) {
+      if (grid[row][col] === 0) {
+        grid[row][col] = 1;
+        colors[row][col] = getRandomColor(); // Assign random color
+      } else {
+        grid[row][col] = 0;
+        colors[row][col] = null; // Clear color if cell dies
+      }
+      drawGrid();
+    }
+
+    // Handle mouse events
+    canvas.addEventListener('mousedown', function(event) {
+      isMouseDown = true;
+      handleMouseAction(event);
+    });
+
+    canvas.addEventListener('mousemove', function(event) {
+      if (isMouseDown) {
+        handleMouseAction(event);
+      }
+    });
+
+    canvas.addEventListener('mouseup', function() {
+      isMouseDown = false;
+    });
+
+    function handleMouseAction(event) {
       const rect = canvas.getBoundingClientRect();
       const x = event.clientX - rect.left;
       const y = event.clientY - rect.top;
       const col = Math.floor(x / cellSize);
       const row = Math.floor(y / cellSize);
-      grid[row][col] = grid[row][col] ? 0 : 1; // Toggle between alive and dead
-      drawGrid();
-    });
+      toggleCell(row, col);
+    }
 
     // Draw the grid
     function drawGrid() {
       for (let i = 0; i < rows; i++) {
         for (let j = 0; j < cols; j++) {
-          ctx.fillStyle = grid[i][j] ? 'black' : 'white';
+          if (grid[i][j] === 1) {
+            ctx.fillStyle = colors[i][j]; // Use the random color
+          } else {
+            ctx.fillStyle = 'white'; // Dead cells are white
+          }
           ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
           ctx.strokeRect(j * cellSize, i * cellSize, cellSize, cellSize); // Draw cell borders
         }
@@ -87,6 +135,7 @@
     // Update the grid according to the rules of the game
     function updateGrid() {
       const newGrid = grid.map(arr => [...arr]); // Clone the grid
+      const newColors = colors.map(arr => [...arr]); // Clone colors
 
       for (let i = 0; i < rows; i++) {
         for (let j = 0; j < cols; j++) {
@@ -95,16 +144,19 @@
           if (grid[i][j] === 0) {
             if (totalNeighbors === 3) {
               newGrid[i][j] = 1; // Cell becomes alive
+              newColors[i][j] = getRandomColor(); // Assign a random color
             }
           } else {
             if (totalNeighbors < 2 || totalNeighbors > 3) {
               newGrid[i][j] = 0; // Cell dies
+              newColors[i][j] = null; // Clear color if cell dies
             }
           }
         }
       }
 
       grid = newGrid;
+      colors = newColors;
     }
 
     // Start the simulation
@@ -129,6 +181,23 @@
       simulationRunning = false;
       clearInterval(simulationInterval);
       grid = createGrid(rows, cols); // Reset the grid to all dead cells
+      colors = createColorGrid(rows, cols); // Reset colors
+      drawGrid();
+    });
+
+    // Randomly fill the grid with alive cells
+    document.getElementById('randomBtn').addEventListener('click', function() {
+      for (let i = 0; i < rows; i++) {
+        for (let j = 0; j < cols; j++) {
+          if (Math.random() > 0.5) { // 50% chance of being alive
+            grid[i][j] = 1;
+            colors[i][j] = getRandomColor(); // Assign random color
+          } else {
+            grid[i][j] = 0;
+            colors[i][j] = null; // Dead cells have no color
+          }
+        }
+      }
       drawGrid();
     });
 
@@ -137,3 +206,4 @@
   </script>
 </body>
 </html>
+
