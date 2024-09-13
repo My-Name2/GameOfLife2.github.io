@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta charset="viewport" content="width=device-width, initial-scale=1.0">
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>3D Conway's Game of Life with Three.js</title>
   <style>
     body {
@@ -28,6 +28,7 @@
     <button id="startBtn">Start</button>
     <button id="pauseBtn">Pause</button>
     <button id="randomBtn">Random Fill</button>
+    <button id="clearBtn">Clear</button>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -110,6 +111,18 @@
         for (let y = 0; y < gridSize; y++) {
           for (let z = 0; z < layers; z++) {
             grid[x][y][z] = Math.random() > 0.8 ? 1 : 0;
+          }
+        }
+      }
+      updateCubeVisibility();
+    }
+
+    // Clear the grid
+    function clearGrid() {
+      for (let x = 0; x < gridSize; x++) {
+        for (let y = 0; y < gridSize; y++) {
+          for (let z = 0; z < layers; z++) {
+            grid[x][y][z] = 0;
           }
         }
       }
@@ -199,6 +212,7 @@
     document.getElementById('startBtn').addEventListener('click', startSimulation);
     document.getElementById('pauseBtn').addEventListener('click', pauseSimulation);
     document.getElementById('randomBtn').addEventListener('click', randomFillGrid);
+    document.getElementById('clearBtn').addEventListener('click', clearGrid);
     window.addEventListener('mousedown', onDocumentMouseDown);
 
     // Resize handler
