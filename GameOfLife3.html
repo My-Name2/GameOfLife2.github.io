@@ -48,6 +48,7 @@
     const cellSize = 2; // Cube size for each cell
     const gridSize = 20; // X and Y size of the grid
     const layers = 10; // Z size of the grid (depth)
+    let hoveredCell = null; // Store the currently hovered cell
 
     let grid = create3DGrid(gridSize, gridSize, layers); // Holds the state (alive or dead)
     let cubes = create3DCubeGrid(gridSize, gridSize, layers); // Holds the 3D cubes
@@ -181,6 +182,31 @@
       isRunning = false;
     }
 
+    // Hover effect to highlight the hovered cell
+    function onDocumentMouseMove(event) {
+      const mouse = new THREE.Vector2();
+      const raycaster = new THREE.Raycaster();
+      
+      // Convert mouse position to normalized device coordinates (-1 to +1)
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+
+      const intersects = raycaster.intersectObjects(scene.children);
+      if (intersects.length > 0) {
+        const intersectedObject = intersects[0].object;
+
+        // Remove highlight from previously hovered cell
+        if (hoveredCell && hoveredCell !== intersectedObject) {
+          hoveredCell.material.opacity = 0.3; // Reset previous cell opacity
+        }
+
+        hoveredCell = intersectedObject;
+        hoveredCell.material.opacity = 0.6; // Highlight hovered cell with brighter opacity
+      }
+    }
+
     // Click event to toggle a cell between alive and dead
     function onDocumentMouseDown(event) {
       event.preventDefault();
@@ -215,7 +241,8 @@
     document.getElementById('pauseBtn').addEventListener('click', pauseSimulation);
     document.getElementById('randomBtn').addEventListener('click', randomFillGrid);
     document.getElementById('clearBtn').addEventListener('click', clearGrid);
-    window.addEventListener('mousedown', onDocumentMouseDown);
+    window.addEventListener('mousemove', onDocumentMouseMove); // Detect hover movement
+    window.addEventListener('mousedown', onDocumentMouseDown); // Handle cell selection
 
     // Resize handler
     window.addEventListener('resize', function () {
