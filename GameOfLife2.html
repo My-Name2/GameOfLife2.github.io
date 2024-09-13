@@ -10,17 +10,26 @@
       text-align: center;
       margin: 0;
       padding: 0;
+      background-color: black; /* Make the webpage background black */
+      color: white; /* Text color to contrast the black background */
     }
     canvas {
       border: 1px solid black;
       display: block;
-      margin: 0 auto;
+      margin: 20px auto;
+      background-color: black; /* Make the canvas background black */
     }
     button {
       margin: 10px;
       padding: 10px 20px;
       font-size: 16px;
       cursor: pointer;
+      color: white;
+      background-color: #444; /* Dark background buttons */
+      border: 1px solid #888; /* Border to make buttons stand out */
+    }
+    button:hover {
+      background-color: #666; /* Button hover effect */
     }
   </style>
 </head>
@@ -56,21 +65,26 @@
       return Array.from({ length: rows }, () => Array(cols).fill(null));
     }
 
-    // Generate random rainbow color
-    function getRandomColor() {
-      const letters = '0123456789ABCDEF';
-      let color = '#';
-      for (let i = 0; i < 6; i++) {
-        color += letters[Math.floor(Math.random() * 16)];
-      }
-      return color;
+    // Generate random neon color
+    function getRandomNeonColor() {
+      const neonColors = [
+        '#39FF14', // Bright green
+        '#FF073A', // Neon red
+        '#FF61F6', // Neon pink
+        '#0FF0FC', // Neon cyan
+        '#FFFF33', // Bright yellow
+        '#FFAA1D', // Neon orange
+        '#B200ED', // Neon purple
+        '#7FFF00'  // Chartreuse (neon greenish yellow)
+      ];
+      return neonColors[Math.floor(Math.random() * neonColors.length)];
     }
 
     // Toggle cell state when clicked or dragged
     function toggleCell(row, col) {
       if (grid[row][col] === 0) {
         grid[row][col] = 1;
-        colors[row][col] = getRandomColor(); // Assign random color
+        colors[row][col] = getRandomNeonColor(); // Assign neon color
       } else {
         grid[row][col] = 0;
         colors[row][col] = null; // Clear color if cell dies
@@ -108,11 +122,12 @@
       for (let i = 0; i < rows; i++) {
         for (let j = 0; j < cols; j++) {
           if (grid[i][j] === 1) {
-            ctx.fillStyle = colors[i][j]; // Use the random color
+            ctx.fillStyle = colors[i][j]; // Use the neon color
           } else {
-            ctx.fillStyle = 'white'; // Dead cells are white
+            ctx.fillStyle = 'black'; // Dead cells are black
           }
           ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
+          ctx.strokeStyle = '#444'; // Grid lines in dark gray
           ctx.strokeRect(j * cellSize, i * cellSize, cellSize, cellSize); // Draw cell borders
         }
       }
@@ -144,7 +159,7 @@
           if (grid[i][j] === 0) {
             if (totalNeighbors === 3) {
               newGrid[i][j] = 1; // Cell becomes alive
-              newColors[i][j] = getRandomColor(); // Assign a random color
+              newColors[i][j] = getRandomNeonColor(); // Assign a neon color
             }
           } else {
             if (totalNeighbors < 2 || totalNeighbors > 3) {
@@ -191,7 +206,7 @@
         for (let j = 0; j < cols; j++) {
           if (Math.random() > 0.5) { // 50% chance of being alive
             grid[i][j] = 1;
-            colors[i][j] = getRandomColor(); // Assign random color
+            colors[i][j] = getRandomNeonColor(); // Assign neon color
           } else {
             grid[i][j] = 0;
             colors[i][j] = null; // Dead cells have no color
@@ -206,4 +221,3 @@
   </script>
 </body>
 </html>
-
