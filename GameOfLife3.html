@@ -49,6 +49,7 @@
     const gridSize = 20; // X and Y size of the grid
     const layers = 10; // Z size of the grid (depth)
     let hoveredCell = null; // Store the currently hovered cell
+    let isSpacePressed = false; // Track whether Spacebar is pressed
 
     let grid = create3DGrid(gridSize, gridSize, layers); // Holds the state (alive or dead)
     let cubes = create3DCubeGrid(gridSize, gridSize, layers); // Holds the 3D cubes
@@ -154,9 +155,9 @@
     function count3DNeighbors(x, y, z) {
       let sum = 0;
       for (let i = -1; i <= 1; i++) {
-        for (let j = -1; j <= 1; j++) {
+        for (let j = -1; i <= 1; j++) {
           for (let k = -1; k <= 1; k++) {
-            if (i === 0 && j === 0 && k === 0) continue; // Skip the current cell
+            if (i === 0 && j === 0 && k === 0) continue;
             const newX = (x + i + gridSize) % gridSize;
             const newY = (y + j + gridSize) % gridSize;
             const newZ = (z + k + layers) % layers;
@@ -206,9 +207,11 @@
       }
     }
 
-    // Click event to toggle a cell between alive and dead
+    // Click event to toggle a cell between alive and dead (Spacebar+Click)
     function onDocumentMouseDown(event) {
       event.preventDefault();
+      if (!isSpacePressed) return; // Only toggle cells when Spacebar is pressed
+
       const mouse = new THREE.Vector2();
       const raycaster = new THREE.Raycaster();
       
@@ -235,13 +238,28 @@
       }
     }
 
-    // Event listeners for buttons
+    // Track Spacebar being pressed and released
+    function onDocumentKeyDown(event) {
+      if (event.code === 'Space') {
+        isSpacePressed = true;
+      }
+    }
+
+    function onDocumentKeyUp(event) {
+      if (event.code === 'Space') {
+        isSpacePressed = false;
+      }
+    }
+
+    // Event listeners for buttons and key events
     document.getElementById('startBtn').addEventListener('click', startSimulation);
     document.getElementById('pauseBtn').addEventListener('click', pauseSimulation);
     document.getElementById('randomBtn').addEventListener('click', randomFillGrid);
     document.getElementById('clearBtn').addEventListener('click', clearGrid);
     window.addEventListener('mousemove', onDocumentMouseMove); // Detect hover movement
     window.addEventListener('mousedown', onDocumentMouseDown); // Handle cell selection
+    window.addEventListener('keydown', onDocumentKeyDown); // Track Spacebar press
+    window.addEventListener('keyup', onDocumentKeyUp); // Track Spacebar release
 
     // Resize handler
     window.addEventListener('resize', function () {
