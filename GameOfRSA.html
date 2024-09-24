@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <title>3D Conway's Game of Life with RSA Encryption</title>
   <style>
-    body {
+    html, body {
       margin: 0;
       overflow: hidden;
       background-color: white; /* Set background to white */
@@ -48,7 +48,8 @@
   <script>
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer();
+    const renderer = new THREE.WebGLRenderer({ alpha: true }); // Allow transparency for the renderer
+    renderer.setClearColor(0xffffff, 1); // Set background to white
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
