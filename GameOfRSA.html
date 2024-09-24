@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <title>3D Conway's Game of Life with RSA Encryption</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1;
+    }
+    button, input {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <button id="startBtn">Start</button>
+    <button id="pauseBtn">Pause</button>
+    <button id="randomBtn">Random Fill</button>
+    <button id="clearBtn">Clear</button>
+    <br>
+    <!-- Encryption controls -->
+    <input type="text" id="message" placeholder="Enter message" />
+    <button id="encryptBtn">Encrypt</button>
+    <button id="decryptBtn">Decrypt</button>
+    <br>
+    <p>Encrypted Message: <span id="encrypted"></span></p>
+    <p>Decrypted Message: <span id="decrypted"></span></p>
+  </div>
+
+  <!-- Include JSEncrypt library -->
+  <script src="https://cdn.rawgit.com/travist/jsencrypt/master/bin/jsencrypt.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/controls/OrbitControls.js"></script>
+
+  <script>
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    camera.position.z = 50;
+    controls.update();
+
+    // Your existing Game of Life code...
+
+    // RSA Encryption/Decryption setup
+    const encrypt = new JSEncrypt();
+    const decrypt = new JSEncrypt();
+
+    // Generate a random RSA key pair
+    const publicKey = encrypt.getKey().getPublicKey();
+    const privateKey = encrypt.getKey().getPrivateKey();
+
+    // Set the public and private keys for encrypt/decrypt
+    encrypt.setPublicKey(publicKey);
+    decrypt.setPrivateKey(privateKey);
+
+    document.getElementById('encryptBtn').addEventListener('click', function () {
+      const message = document.getElementById('message').value;
+      const encryptedMessage = encrypt.encrypt(message);
+      document.getElementById('encrypted').innerText = encryptedMessage;
+    });
+
+    document.getElementById('decryptBtn').addEventListener('click', function () {
+      const encryptedMessage = document.getElementById('encrypted').innerText;
+      const decryptedMessage = decrypt.decrypt(encryptedMessage);
+      document.getElementById('decrypted').innerText = decryptedMessage;
+    });
+
+    // Render loop
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    clearGrid(); // Initialize with an empty grid
+    animate(); // Start the render loop
+  </script>
+</body>
+</html>
