@@ -8,6 +8,8 @@
     body {
       margin: 0;
       overflow: hidden;
+      background-color: white; /* Set background to white */
+      color: black; /* Set text color to black */
     }
     #controls {
       position: absolute;
@@ -21,15 +23,13 @@
       font-size: 16px;
       cursor: pointer;
     }
+    p {
+      font-size: 18px; /* Increase text size for visibility */
+    }
   </style>
 </head>
 <body>
   <div id="controls">
-    <button id="startBtn">Start</button>
-    <button id="pauseBtn">Pause</button>
-    <button id="randomBtn">Random Fill</button>
-    <button id="clearBtn">Clear</button>
-    <br>
     <!-- Encryption controls -->
     <input type="text" id="message" placeholder="Enter message" />
     <button id="encryptBtn">Encrypt</button>
@@ -55,8 +55,6 @@
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     camera.position.z = 50;
     controls.update();
-
-    // Your existing Game of Life code...
 
     // RSA Encryption/Decryption setup
     const encrypt = new JSEncrypt();
@@ -89,7 +87,6 @@
       renderer.render(scene, camera);
     }
 
-    clearGrid(); // Initialize with an empty grid
     animate(); // Start the render loop
   </script>
 </body>
