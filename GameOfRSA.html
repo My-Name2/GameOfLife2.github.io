@@ -3,7 +3,7 @@
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta charset="UTF-8">
-  <title>RSA Keypair Generation</title>
+  <title>RSA Keypair Generation and Encryption/Decryption</title>
   <style>
     html, body {
       margin: 0;
@@ -17,33 +17,67 @@
       left: 10px;
       z-index: 1;
     }
-    button, input {
+    button, input, textarea {
       margin: 5px;
       padding: 10px 20px;
       font-size: 16px;
       cursor: pointer;
     }
-    p {
+    p, label {
       font-size: 18px;
     }
-    label {
-      font-size: 16px;
+    .tab {
+      display: none;
+    }
+    .tab.active {
+      display: block;
     }
   </style>
 </head>
 <body>
   <div id="controls">
-    <!-- Key generation controls -->
-    <label for="bitSlider">Select RSA Key Length (Bits): </label>
-    <input type="range" id="bitSlider" min="0" max="8" step="1" value="0">
-    <span id="bitValue">2048</span>
-    <br>
-    <button id="generateBtn">Generate Keypair</button>
-    <br>
-    <p>Public Key:</p>
-    <textarea id="publicKey" rows="10" cols="80"></textarea>
-    <p>Private Key:</p>
-    <textarea id="privateKey" rows="10" cols="80"></textarea>
+    <!-- Navigation Tabs -->
+    <button id="keyGenTabBtn">Key Generation</button>
+    <button id="encryptDecryptTabBtn">Encrypt/Decrypt</button>
+    
+    <!-- Key Generation Tab -->
+    <div id="keyGenTab" class="tab active">
+      <label for="bitSlider">Select RSA Key Length (Bits): </label>
+      <input type="range" id="bitSlider" min="0" max="8" step="1" value="0">
+      <span id="bitValue">2048</span>
+      <br>
+      <button id="generateBtn">Generate Keypair</button>
+      <br>
+      <p>Public Key:</p>
+      <textarea id="publicKey" rows="10" cols="80" readonly></textarea>
+      <p>Private Key:</p>
+      <textarea id="privateKey" rows="10" cols="80" readonly></textarea>
+    </div>
+
+    <!-- Encrypt/Decrypt Tab -->
+    <div id="encryptDecryptTab" class="tab">
+      <h3>Encrypt a Message</h3>
+      <label for="recipientPublicKey">Recipient's Public Key:</label>
+      <textarea id="recipientPublicKey" rows="5" cols="80"></textarea>
+      <br>
+      <label for="messageToEncrypt">Message:</label>
+      <textarea id="messageToEncrypt" rows="5" cols="80"></textarea>
+      <br>
+      <button id="encryptMessageBtn">Encrypt Message</button>
+      <p>Encrypted Message:</p>
+      <textarea id="encryptedMessage" rows="5" cols="80" readonly></textarea>
+
+      <h3>Decrypt a Message</h3>
+      <label for="yourPrivateKey">Your Private Key:</label>
+      <textarea id="yourPrivateKey" rows="5" cols="80"></textarea>
+      <br>
+      <label for="messageToDecrypt">Encrypted Message:</label>
+      <textarea id="messageToDecrypt" rows="5" cols="80"></textarea>
+      <br>
+      <button id="decryptMessageBtn">Decrypt Message</button>
+      <p>Decrypted Message:</p>
+      <textarea id="decryptedMessage" rows="5" cols="80" readonly></textarea>
+    </div>
   </div>
 
   <!-- Include JSEncrypt library -->
@@ -52,7 +86,19 @@
   <script>
     // Map slider values to actual bit lengths
     const bitLengths = [2048, 3072, 4096, 8192, 16384, 32768, 65536, 131072, 262144];
-    
+
+    // Switch between tabs
+    const keyGenTab = document.getElementById('keyGenTab');
+    const encryptDecryptTab = document.getElementById('encryptDecryptTab');
+    document.getElementById('keyGenTabBtn').addEventListener('click', function () {
+      keyGenTab.classList.add('active');
+      encryptDecryptTab.classList.remove('active');
+    });
+    document.getElementById('encryptDecryptTabBtn').addEventListener('click', function () {
+      encryptDecryptTab.classList.add('active');
+      keyGenTab.classList.remove('active');
+    });
+
     // Update the displayed bit length when the slider is moved
     const bitSlider = document.getElementById('bitSlider');
     const bitValue = document.getElementById('bitValue');
@@ -73,6 +119,26 @@
     document.getElementById('generateBtn').addEventListener('click', function () {
       const selectedBits = bitLengths[bitSlider.value];
       generateKeypair(selectedBits);
+    });
+
+    // Encryption
+    document.getElementById('encryptMessageBtn').addEventListener('click', function () {
+      const publicKey = document.getElementById('recipientPublicKey').value;
+      const message = document.getElementById('messageToEncrypt').value;
+      const encrypt = new JSEncrypt();
+      encrypt.setPublicKey(publicKey);
+      const encryptedMessage = encrypt.encrypt(message);
+      document.getElementById('encryptedMessage').value = encryptedMessage || 'Encryption failed!';
+    });
+
+    // Decryption
+    document.getElementById('decryptMessageBtn').addEventListener('click', function () {
+      const privateKey = document.getElementById('yourPrivateKey').value;
+      const encryptedMessage = document.getElementById('messageToDecrypt').value;
+      const decrypt = new JSEncrypt();
+      decrypt.setPrivateKey(privateKey);
+      const decryptedMessage = decrypt.decrypt(encryptedMessage);
+      document.getElementById('decryptedMessage').value = decryptedMessage || 'Decryption failed!';
     });
   </script>
 </body>
